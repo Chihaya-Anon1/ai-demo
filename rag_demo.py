@@ -109,18 +109,23 @@ def neighbor_chunks(vectorstore: Chroma, retrieved: list[Document]) -> list[str]
     return extras
 
 
-def answer_question(question: str, vectorstore: Chroma) -> None:
+def retrieve_context(question: str, vectorstore: Chroma) -> tuple[list[Document], str]:
+    retrieved = vectorstore.similarity_search(question, k=3)
+    context_parts = [doc.page_content for doc in retrieved] + neighbor_chunks(vectorstore, retrieved)
+    return retrieved, "\n\n".join(context_parts)
+
+
+def generate_answer(question: str, vectorstore: Chroma, *, verbose: bool = False) -> str:
     settings = get_settings()
     if not settings.deepseek_api_key:
-        raise SystemExit("未配置 DEEPSEEK_API_KEY，请先填写 .env")
+        raise RuntimeError("未配置 DEEPSEEK_API_KEY，请先填写 .env")
 
-    retrieved = vectorstore.similarity_search(question, k=3)
-    print("\n===== 检索到的 3 个相关段落 =====")
-    for i, doc in enumerate(retrieved, start=1):
-        print(f"\n--- 段落 {i} ---\n{doc.page_content}")
+    retrieved, context = retrieve_context(question, vectorstore)
+    if verbose:
+        print("\n===== 检索到的 3 个相关段落 =====")
+        for i, doc in enumerate(retrieved, start=1):
+            print(f"\n--- 段落 {i} ---\n{doc.page_content}")
 
-    context_parts = [doc.page_content for doc in retrieved] + neighbor_chunks(vectorstore, retrieved)
-    context = "\n\n".join(context_parts)
     prompt = ChatPromptTemplate.from_messages(
         [
             (
@@ -138,8 +143,15 @@ def answer_question(question: str, vectorstore: Chroma) -> None:
         temperature=0,
     )
     result = (prompt | llm).invoke({"context": context, "question": question})
-    print("\n===== DeepSeek 回答 =====\n")
-    print(result.content)
+    answer = (result.content or "").strip()
+    if verbose:
+        print("\n===== DeepSeek 回答 =====\n")
+        print(answer)
+    return answer
+
+
+def answer_question(question: str, vectorstore: Chroma) -> str:
+    return generate_answer(question, vectorstore, verbose=True)
 
 
 def main() -> None:
