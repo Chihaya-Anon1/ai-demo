@@ -5,3 +5,5 @@ __pycache__/
 *.pyc
 .pytest_cache/
 chroma_db/
+.vscode/
+test.txt
