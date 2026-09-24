@@ -7,3 +7,5 @@ __pycache__/
 chroma_db/
 .vscode/
 test.txt
+
+data/
