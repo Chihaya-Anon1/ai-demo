@@ -71,3 +71,8 @@
 5. **Python 依赖地狱**
    问题：安装 `langchain-chroma` 等库时与原有 streamlit / tensorflow 依赖冲突。
    解决：`pip install --no-deps` 绕过依赖解析安装，再手动补齐缺失组件。
+
+6. **Windows 中文控制台打印论文原文直接崩**
+   问题：打印检索到的原文时抛 `UnicodeEncodeError: 'gbk' codec can't encode character '\ufb01'`——论文里的连字（`ﬁ` `ﬂ`）无法用 GBK 编码。
+   原因：Windows 中文控制台默认 GBK，而 1 页 test.pdf 里没有这类字符，换成真实论文语料后必现。
+   解决：程序启动时把 stdout / stderr 重设为 UTF-8（`errors="replace"`），保证任意语言的原文都能安全输出。

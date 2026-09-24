@@ -1,7 +1,16 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
+
+# Windows 中文控制台默认用 GBK，打印论文原文里的连字（ﬁ U+FB01、ﬂ U+FB02）等字符会直接
+# UnicodeEncodeError 崩掉整个问答流程。1 页 test.pdf 里没有这类字符，扩大到真实语料后必现。
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:  # noqa: BLE001 - 非常规流（被重定向/已关闭）时忽略
+        pass
 
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
